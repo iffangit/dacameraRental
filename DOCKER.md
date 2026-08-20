@@ -121,7 +121,9 @@ tar -xzf ~/Desktop/dacamera_uploads.tgz -C public
 docker compose cp ./public/uploads/. app:/app/public/uploads/
 docker compose exec -u root app chown -R node:node /app/public/uploads
 
-# 3. รีสตาร์ทแอป
+# 3. รีสตาร์ทแอป — จำเป็น ไม่ใช่แค่ให้สบายใจ
+#    next start อ่านรายชื่อไฟล์ใน public/ ตอนบูตครั้งเดียว
+#    ไฟล์ที่ก๊อปเข้าไปตอนเซิร์ฟเวอร์รันอยู่จะขึ้น 404 จนกว่าจะรีสตาร์ท
 docker compose restart app
 ```
 
@@ -162,8 +164,11 @@ docker compose exec -T db mysqldump -u root -p'รหัสผ่านของ
 ### เข้า MySQL shell
 
 ```bash
-docker compose exec db mysql -u root -p dacamera_rental
+docker compose exec db mysql -u root -p --default-character-set=utf8mb4 dacamera_rental
 ```
+
+> ต้องใส่ `--default-character-set=utf8mb4` เสมอ ไม่งั้นภาษาไทยจะโผล่มาเป็น `????`
+> — เป็นแค่การแสดงผลของ client ข้อมูลใน DB ไม่ได้พัง
 
 หรือต่อจากโปรแกรมบนเครื่อง (TablePlus / DBeaver) ที่ `127.0.0.1:3307`
 — ใช้ 3307 ไม่ใช่ 3306 เพราะกันชนกับ XAMPP ที่จอง 3306 อยู่
@@ -207,6 +212,12 @@ MySQL ตั้งรหัสผ่านแค่ตอนสร้าง volu
 
 **พอร์ต 3000 ถูกใช้อยู่**
 แก้ `ports` ของ service `app` ใน `docker-compose.yml` เป็น `"3001:3000"`
+
+**อัปโหลดรูปใหม่ในเว็บแล้วรูปไม่ขึ้น (404)**
+`next start` อ่านรายชื่อไฟล์ใน `public/` ตอนบูตครั้งเดียว รูปที่เพิ่งอัปโหลดจึงยังไม่ถูกเสิร์ฟ
+ชั่วคราวแก้ด้วย `docker compose restart app` — เป็นข้อจำกัดของตัวแอปเอง ไม่ใช่ของ Docker
+(เจอเหมือนกันถ้า deploy ด้วย PM2 บน VPS) ทางแก้ถาวรคือย้าย uploads ออกจาก `public/`
+แล้วเสิร์ฟผ่าน route handler แทน
 
 **รูปหายหลัง rebuild**
 ไม่ควรเกิด เพราะรูปอยู่ใน volume `dacamera_uploads` ไม่ได้อยู่ใน image
