@@ -1,0 +1,50 @@
+# ============================================================
+#  Dacamera Rental — รันทั้งระบบด้วย docker compose
+#
+#      cp .env.docker.example .env.docker
+#      แก้ค่าใน .env.docker
+#      docker compose up -d --build
+#
+#  ตั้งใจไม่ใช้ ${ตัวแปร} ในไฟล์นี้เลย เพราะ compose จะไปหยิบค่าจาก .env
+#  (ไฟล์ของ npm run dev) มาแทนโดยอัตโนมัติ ซึ่งชี้ไปที่ XAMPP คนละตัวกับ container
+#  ค่าทั้งหมดจึงส่งผ่าน env_file: .env.docker ตรง ๆ แทน
+# ============================================================
+
+name: dacamera
+
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    env_file: .env.docker
+    volumes:
+      - db-data:/var/lib/mysql
+    ports:
+      # เปิดออกมาที่ 3307 ไม่ใช่ 3306 เพราะเครื่อง dev มี XAMPP จอง 3306 อยู่
+      # ผูกกับ 127.0.0.1 เพื่อไม่ให้เครื่องอื่นในวง LAN ต่อฐานข้อมูลตรงได้
+      - "127.0.0.1:3307:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env.docker
+    ports:
+      - "3000:3000"
+    volumes:
+      # รูปที่อัปโหลดต้องอยู่นอก image ไม่งั้นหายทุกครั้งที่ build ใหม่
+      - uploads:/app/public/uploads
+
+volumes:
+  db-data:
+  uploads:

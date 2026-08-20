@@ -1,0 +1,28 @@
+# ไฟล์ที่ไม่ต้องส่งเข้า build context ของ Docker
+# ยิ่ง context เล็ก build ยิ่งเร็ว และกันไฟล์ลับหลุดเข้า image
+
+node_modules
+.git
+.gitignore
+
+# output ของ next — ต้อง build ใหม่ใน image เสมอ
+.next
+.next-build
+
+# ค่าจริงของ environment — ส่งเข้า container ผ่าน compose แทน
+.env
+.env.*
+!.env.example
+!.env.docker.example
+
+# รูปที่อัปโหลด — ผูกเป็น volume ไม่ต้องอบเข้า image
+public/uploads/*
+!public/uploads/.gitkeep
+
+# เอกสาร / ของเล่นที่ไม่เกี่ยวกับ runtime
+*.md
+!README.md
+*.dc.html
+.DS_Store
+.vscode
+.idea
