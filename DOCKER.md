@@ -1,13 +1,13 @@
 # ย้ายระบบไปรันบน iMac ด้วย Docker
 
 ทำได้ และตอนนี้ตั้งค่าไว้ให้แล้ว — บน iMac ไม่ต้องลง Node, ไม่ต้องลง XAMPP,
-ไม่ต้องลง MariaDB ลงแค่ Docker Desktop ตัวเดียวจบ
+ไม่ต้องลง MySQL ลงแค่ Docker Desktop ตัวเดียวจบ
 
 ระบบถูกแยกเป็นสอง container:
 
 | container | ทำอะไร | ข้อมูลเก็บที่ไหน |
 |---|---|---|
-| `db` | MariaDB 11.4 | volume `dacamera_db-data` |
+| `db` | MySQL 8.4 | volume `dacamera_db-data` |
 | `app` | Next.js production (`next start`) | รูปอัปโหลดอยู่ volume `dacamera_uploads` |
 
 ตอน `app` สตาร์ท มันจะรอ `db` พร้อม แล้วรัน `prisma migrate deploy` ให้เองก่อนเปิดเว็บ
@@ -37,7 +37,7 @@ cp .env.docker.example .env.docker
 
 แก้ `.env.docker` ให้ครบ:
 
-- `MARIADB_ROOT_PASSWORD` — ตั้งใหม่ได้ตามใจ **ห้ามมีอักขระ `@ : / ? #`** เพราะต้องเอาไปต่อเป็น URL
+- `MYSQL_ROOT_PASSWORD` — ตั้งใหม่ได้ตามใจ **ห้ามมีอักขระ `@ : / ? #`** เพราะต้องเอาไปต่อเป็น URL
 - `DATABASE_URL` — รหัสผ่านกับชื่อ database ต้องตรงกับสองบรรทัดบน (host เป็น `db` ไม่ใช่ `127.0.0.1`)
 - `AUTH_SECRET` — สร้างใหม่ด้วย
   ```bash
@@ -84,9 +84,10 @@ docker compose exec app npm run db:seed
 ```bash
 cd "/Users/macbookairiffan/Dacamera system"
 
-# ฐานข้อมูล
-/Applications/XAMPP/xamppfiles/bin/mariadb-dump -u root \
+# ฐานข้อมูล (ฝั่งนี้ยังเป็น MariaDB ของ XAMPP)
+/Applications/XAMPP/xamppfiles/bin/mysqldump -u root \
   --default-character-set=utf8mb4 \
+  --skip-set-charset --no-tablespaces \
   dacamera_rental > ~/Desktop/dacamera_rental.sql
 
 # รูปที่อัปโหลด (ไม่ได้อยู่บน GitHub — ต้องก๊อปมือ)
@@ -98,6 +99,11 @@ tar -czf ~/Desktop/dacamera_uploads.tgz -C public uploads
 > dump มีตาราง `_prisma_migrations` ติดไปด้วย — ตั้งใจให้เป็นแบบนั้น
 > Prisma จะได้รู้ว่า migration ไหนรันไปแล้ว ไม่รันซ้ำ
 
+> **ข้ามค่าย MariaDB → MySQL ได้ไหม** — ได้ เพราะ migration ทุกไฟล์ระบุ
+> `utf8mb4` / `utf8mb4_unicode_ci` ไว้ตรง ๆ ทุกตาราง ไม่ได้พึ่ง default ของเซิร์ฟเวอร์
+> `--skip-set-charset` ตัดบรรทัดตั้ง charset ที่ MariaDB เขียนมาให้ (บางรุ่นเขียนเป็น `utf8mb3`)
+> ส่วน `--no-tablespaces` กัน error เรื่องสิทธิ์ `PROCESS` ตอน import เข้า MySQL 8
+
 ### บน iMac — ใส่กลับเข้า container
 
 ทำหลังจาก `docker compose up -d` แล้ว (schema ถูกสร้างไว้แล้ว dump จะเขียนทับให้เอง)
@@ -105,9 +111,9 @@ tar -czf ~/Desktop/dacamera_uploads.tgz -C public uploads
 ```bash
 cd dacameraRental
 
-# 1. ฐานข้อมูล — ใส่รหัสตรงกับ MARIADB_ROOT_PASSWORD ใน .env.docker
+# 1. ฐานข้อมูล — ใส่รหัสตรงกับ MYSQL_ROOT_PASSWORD ใน .env.docker
 docker compose exec -T db \
-  mariadb -u root -p'รหัสผ่านของคุณ' --default-character-set=utf8mb4 dacamera_rental \
+  mysql -u root -p'รหัสผ่านของคุณ' --default-character-set=utf8mb4 dacamera_rental \
   < ~/Desktop/dacamera_rental.sql
 
 # 2. รูปอัปโหลด
@@ -148,15 +154,15 @@ migration ใหม่จะถูกรันให้อัตโนมัต�
 ### แบ็กอัปฐานข้อมูล
 
 ```bash
-docker compose exec -T db mariadb-dump -u root -p'รหัสผ่านของคุณ' \
-  --default-character-set=utf8mb4 dacamera_rental \
+docker compose exec -T db mysqldump -u root -p'รหัสผ่านของคุณ' \
+  --default-character-set=utf8mb4 --no-tablespaces dacamera_rental \
   > backup-$(date +%Y%m%d).sql
 ```
 
 ### เข้า MySQL shell
 
 ```bash
-docker compose exec db mariadb -u root -p dacamera_rental
+docker compose exec db mysql -u root -p dacamera_rental
 ```
 
 หรือต่อจากโปรแกรมบนเครื่อง (TablePlus / DBeaver) ที่ `127.0.0.1:3307`
@@ -172,7 +178,7 @@ Next.js เองแนะนำว่าบน macOS อย่าเอา `nex
 วิธีที่ลื่นกว่าคือ **ใช้ container เฉพาะฐานข้อมูล แล้วรันแอปบนเครื่องตรง ๆ**
 
 ```bash
-docker compose up -d db     # เปิดแค่ MariaDB
+docker compose up -d db     # เปิดแค่ MySQL
 npm install
 npm run dev
 ```
@@ -193,10 +199,10 @@ DATABASE_URL="mysql://root:รหัสผ่านของคุณ@127.0.0.1:
 ```bash
 docker compose logs app --tail=50
 ```
-ส่วนใหญ่คือ `DATABASE_URL` ใน `.env.docker` ไม่ตรงกับ `MARIADB_ROOT_PASSWORD`
+ส่วนใหญ่คือ `DATABASE_URL` ใน `.env.docker` ไม่ตรงกับ `MYSQL_ROOT_PASSWORD`
 
 **เปลี่ยนรหัสผ่านใน `.env.docker` แล้วต่อ DB ไม่ได้**
-MariaDB ตั้งรหัสผ่านแค่ตอนสร้าง volume ครั้งแรก แก้ทีหลังไม่มีผล
+MySQL ตั้งรหัสผ่านแค่ตอนสร้าง volume ครั้งแรก แก้ทีหลังไม่มีผล
 ถ้าจะเปลี่ยนจริงต้อง `docker compose down -v` (⚠️ ข้อมูลหาย — แบ็กอัปก่อน) แล้ว up ใหม่
 
 **พอร์ต 3000 ถูกใช้อยู่**

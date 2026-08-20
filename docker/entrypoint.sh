@@ -1,7 +1,7 @@
 #!/bin/sh
 # รอฐานข้อมูลพร้อม แล้วค่อยอัปเดต schema ก่อนสตาร์ทแอป
 #
-# compose ตั้ง depends_on: service_healthy ไว้แล้ว แต่ healthcheck ของ MariaDB
+# compose ตั้ง depends_on: service_healthy ไว้แล้ว แต่ healthcheck ของ MySQL
 # ผ่านตั้งแต่ตอนที่ยังรับ connection ได้ไม่เต็มที่ — retry ตรงนี้กันพลาดอีกชั้น
 set -e
 

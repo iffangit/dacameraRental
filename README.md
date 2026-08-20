@@ -14,12 +14,12 @@
 | :--- | :--- |
 | Frontend | React 19 (JSX), Tailwind CSS v4 |
 | Backend | Next.js 16 App Router (Node.js 22) — Server Components + Server Actions |
-| Database | MariaDB 10.4 / MySQL 8 ผ่าน Prisma ORM 7 |
+| Database | MySQL 8 / MariaDB 10.4 ผ่าน Prisma ORM 7 (Docker ใช้ MySQL 8.4) |
 | Deployment | Linux VPS + aaPanel (Nginx reverse proxy → PM2) |
 
 ---
 
-> อยากข้ามขั้นตอนข้างล่าง? รันทั้งระบบ (แอป + MariaDB) ด้วย Docker ก็ได้ — ดู [DOCKER.md](DOCKER.md)
+> อยากข้ามขั้นตอนข้างล่าง? รันทั้งระบบ (แอป + MySQL) ด้วย Docker ก็ได้ — ดู [DOCKER.md](DOCKER.md)
 
 ## เริ่มใช้งาน
 

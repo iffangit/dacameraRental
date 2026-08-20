@@ -1,5 +1,5 @@
 # ============================================================
-#  Dacamera Rental — รันทั้งระบบด้วย docker compose
+#  Dacamera Rental — รันทั้งระบบด้วย docker compose (MySQL 8.4)
 #
 #      cp .env.docker.example .env.docker
 #      แก้ค่าใน .env.docker
@@ -14,9 +14,15 @@ name: dacamera
 
 services:
   db:
-    image: mariadb:11.4
+    image: mysql:8.4
     restart: unless-stopped
     env_file: .env.docker
+    # MySQL 8 ตั้ง collation เริ่มต้นเป็น utf8mb4_0900_ai_ci ซึ่ง MariaDB ไม่มี
+    # ตรึงเป็น utf8mb4_unicode_ci ให้ตรงกับที่ migration ระบุไว้ทุกตาราง
+    # จะได้ dump ไป-มาระหว่าง XAMPP กับ container นี้ได้โดยไม่เจอ collation ชนกัน
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     volumes:
       - db-data:/var/lib/mysql
     ports:
@@ -24,11 +30,13 @@ services:
       # ผูกกับ 127.0.0.1 เพื่อไม่ให้เครื่องอื่นในวง LAN ต่อฐานข้อมูลตรงได้
       - "127.0.0.1:3307:3306"
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      # image ของ mysql ไม่มี healthcheck.sh แบบ mariadb — ping เอาเอง
+      test:
+        ["CMD-SHELL", 'mysqladmin ping -h 127.0.0.1 -u root -p"$$MYSQL_ROOT_PASSWORD" --silent']
       interval: 5s
       timeout: 5s
       retries: 20
-      start_period: 30s
+      start_period: 40s
 
   app:
     build:
