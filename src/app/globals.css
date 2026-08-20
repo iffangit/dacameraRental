@@ -1,26 +1,104 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   Design Tokens — อ้างอิงจาก DESIGN.md
+   Theme: Red / White, Enterprise style, sharp corners
+   ============================================================ */
+@theme {
+  /* ---- Brand ---- */
+  --color-primary: oklch(0.55 0.21 25);
+  --color-primary-hover: oklch(0.48 0.21 25);
+  --color-primary-soft: oklch(0.96 0.03 25);
+
+  /* ---- Surfaces ---- */
+  --color-canvas: oklch(0.985 0.003 25);
+  --color-surface: #ffffff;
+
+  /* ---- Lines ---- */
+  --color-line: oklch(0.92 0.01 25);
+  --color-line-strong: oklch(0.86 0.012 25);
+
+  /* ---- Text ---- */
+  --color-ink: oklch(0.22 0.02 25);
+  --color-ink-muted: oklch(0.55 0.02 25);
+
+  /* ---- Status (สถานะอุปกรณ์ REQ-RENT-001) ---- */
+  --color-available: oklch(0.5 0.14 150); /* ว่าง */
+  --color-rented: oklch(0.55 0.21 25); /* ถูกเช่า */
+  --color-maintenance: oklch(0.55 0.15 70); /* ซ่อมบำรุง */
+  --color-cleaning: oklch(0.45 0.02 250); /* รอทำความสะอาด */
+
+  /* ---- Typography ---- */
+  --font-head: var(--font-prompt), system-ui, sans-serif; /* หัวข้อ + ตัวเลข */
+  --font-body: var(--font-sarabun), system-ui, sans-serif; /* เนื้อหา */
+
+  /* ---- Layout ---- */
+  --spacing-sidebar: 236px;
+  --spacing-sidebar-collapsed: 64px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============================================================
+   Base
+   ============================================================ */
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ตัวเลขเรียงตรงหลักในตาราง/สถิติ — สำคัญกับตารางคิวและราคา */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ============================================================
+   Component utilities ที่ใช้ซ้ำหลายหน้า
+   ============================================================ */
+
+/* text-tag icon (EQ, RT, PA, AI...) แทน emoji ตาม DESIGN.md */
+.tag {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 4px;
+  font-family: var(--font-head);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-ink-muted);
+  background: var(--color-canvas);
+}
+
+/* จุดวงกลมแสดงสถานะ — ข้อยกเว้นเดียวที่ปัดมุมได้ */
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  flex: 0 0 7px;
+}
+
+/* scrollbar ให้กลมกลืนกับธีม */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-canvas);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border: 2px solid var(--color-canvas);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-muted);
 }

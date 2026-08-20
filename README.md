@@ -1,36 +1,163 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Smart Camera & Equipment Rental Management System
 
-## Getting Started
+ระบบบริหารจัดการและจัดคิวเช่าอุปกรณ์การถ่ายภาพอัจฉริยะ
+วิทยาลัยเทคนิคยะลา (Yala Technical College)
 
-First, run the development server:
+> ข้อกำหนดทั้งหมดอยู่ใน [`requirements.md`](./requirements.md) (SRS v1.1)
+> แนวทางออกแบบหน้าจออยู่ใน [`DESIGN.md`](./DESIGN.md)
+
+---
+
+## Tech Stack
+
+| ชั้น | เทคโนโลยี |
+| :--- | :--- |
+| Frontend | React 19 (JSX), Tailwind CSS v4 |
+| Backend | Next.js 16 App Router (Node.js 22) — Server Components + Server Actions |
+| Database | MariaDB 10.4 / MySQL 8 ผ่าน Prisma ORM 7 |
+| Deployment | Linux VPS + aaPanel (Nginx reverse proxy → PM2) |
+
+---
+
+## เริ่มใช้งาน
+
+### 1. เตรียม Database
+
+โปรเจกต์นี้ต่อกับ MariaDB ของ XAMPP บนพอร์ต 3306 ตรวจว่า MySQL ของ XAMPP เปิดอยู่ แล้วสร้างฐานข้อมูล
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+/Applications/XAMPP/xamppfiles/bin/mysql -u root -h 127.0.0.1 \
+  -e "CREATE DATABASE IF NOT EXISTS dacamera_rental
+      CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. ตั้งค่า Environment
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+คัดลอก `.env.example` เป็น `.env` แล้วแก้ค่าให้ตรงกับเครื่อง
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cp .env.example .env
+```
 
-## Learn More
+| ตัวแปร | ใช้ทำอะไร |
+| :--- | :--- |
+| `DATABASE_URL` | สตริงเชื่อมต่อ MySQL/MariaDB |
+| `GEMINI_API_KEY` | เรียก Gemini API สำหรับ AI Wizard และ AI Marketing (ขอที่ [aistudio.google.com/apikey](https://aistudio.google.com/apikey)) |
 
-To learn more about Next.js, take a look at the following resources:
+### 3. ติดตั้งและรัน
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+npm run db:migrate    # สร้างตารางตาม schema
+npm run db:seed       # ใส่ข้อมูลตัวอย่าง
+npm run dev           # เปิด http://localhost:3000
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+บัญชีทดสอบหลัง seed (รหัสผ่านเดียวกันทุกบัญชี คือ `password123`):
 
-## Deploy on Vercel
+| บัญชี | สิทธิ์ | เข้าได้ที่ |
+| :--- | :--- | :--- |
+| `admin@dacamera.local` | ADMIN | หน้าผู้ดูแลระบบทั้งหมด |
+| `nattapong@example.com` | VIP | หน้าบัญชีของฉัน (`/me`) |
+| `siriporn@example.com` | MEMBER | หน้าบัญชีของฉัน (`/me`) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## คำสั่งที่ใช้บ่อย
+
+| คำสั่ง | ทำอะไร |
+| :--- | :--- |
+| `npm run dev` | รัน dev server |
+| `npm run build` | build สำหรับ production |
+| `npm run db:migrate` | สร้าง/อัปเดตตารางจาก `prisma/schema.prisma` |
+| `npm run db:seed` | ล้างข้อมูลเดิมแล้วใส่ข้อมูลตัวอย่างใหม่ |
+| `npm run db:studio` | เปิด Prisma Studio ดูข้อมูลแบบ GUI (คล้าย phpMyAdmin) |
+| `npm run lint` | ตรวจโค้ดด้วย ESLint |
+
+---
+
+## โครงสร้างโปรเจกต์
+
+```
+prisma/
+  schema.prisma      โครงสร้างฐานข้อมูลทั้งหมด (11 entity)
+  seed.js            ข้อมูลตัวอย่าง — อุปกรณ์จริงในตลาด + สมาชิกสมมติ
+  migrations/        ประวัติการเปลี่ยนแปลง schema
+src/
+  app/
+    (admin)/         กลุ่มหน้าฝั่งผู้ดูแลระบบ ใช้ layout ร่วมกัน
+      dashboard/     ภาพรวมระบบ
+      queue/         ตารางคิวอุปกรณ์
+      stock/         จัดการสต็อกรายชิ้น
+      approval/      อนุมัติคำขอเช่า
+      marketing/     AI Marketing
+  components/        UI ที่ใช้ซ้ำ (AdminShell, ui.jsx, Clock)
+  lib/
+    prisma.js        การเชื่อมต่อฐานข้อมูล
+    domain.js        กฎทางธุรกิจ + ป้ายกำกับภาษาไทย
+    nav.js           โครงสร้างเมนู
+public/uploads/      รูปถ่ายตรวจสภาพอุปกรณ์ (REQ-RISK-002)
+```
+
+---
+
+## หมายเหตุการออกแบบที่สำคัญ
+
+**แยก `Equipment` ออกจาก `EquipmentUnit`** — `Equipment` คือรุ่นสินค้า (เช่น Sony A7 III) ส่วน `EquipmentUnit` คือตัวเครื่องจริงที่มี Serial Number กำกับ **สิ่งที่ถูกจองคือ Unit ไม่ใช่รุ่น** จึงป้องกันการจองซ้อนได้ตาม REQ-RENT-002
+
+**การกันจองซ้อน 100%** — MySQL ไม่มี exclusion constraint แบบ PostgreSQL จึงบังคับสองชั้น คือ unique key `(equipmentUnitId, startDate)` ที่ระดับฐานข้อมูล ร่วมกับการตรวจช่วงเวลาทับซ้อนด้วย `SELECT ... FOR UPDATE` ภายใน transaction ตอนอนุมัติ (`src/lib/orders.js`) รายละเอียดอยู่ในคอมเมนต์เหนือ model `RentalOrderItem`
+
+**กฎธุรกิจต้องอยู่นอก Server Action** — `decideOrderTx()` และ `decideOrderWithRetry()` อยู่ใน `src/lib/orders.js` ส่วน Server Action เป็นแค่เปลือกบาง ๆ ที่ตรวจ input แล้ว revalidate เหตุผลคือฟังก์ชันใน `"use server"` เรียกจากสคริปต์ทดสอบไม่ได้ (ต้องมี Next runtime) การแยกออกมาจึงทำให้เขียนเทสต์กันจองซ้อนได้จริง และอนาคตให้ LINE bot เรียกกฎเดียวกันได้
+
+**`next build` เขียนลง `.next-build` ไม่ใช่ `.next`** — ปกติ `next dev` กับ `next build` ใช้โฟลเดอร์เดียวกัน ถ้ารัน build ระหว่างที่ dev server ทำงานอยู่ ไฟล์ JS ที่เบราว์เซอร์โหลดไปแล้วกับที่ server มีจะคนละชุด แล้วพ่น error ที่ดูเหมือนบั๊กของ React ทั้งที่โค้ดไม่ผิด:
+
+```
+chunk.reason.enqueueModel is not a function
+Failed to fetch RSC payload ... Cannot read properties of undefined (reading 'split')
+```
+
+`next.config.mjs` จึงอ่าน `distDir` จาก env และ script `build`/`start` ตั้ง `NEXT_DIST_DIR=.next-build` ให้ ทำให้รัน build ระหว่าง dev ได้อย่างปลอดภัย **ถ้าเจอ error กลุ่มนี้อีก อย่าเพิ่งโทษ React หรือ Turbopack — เช็คก่อนว่ามีอะไรไปเขียนทับ output ของ dev server หรือเปล่า**
+
+**Server Action ต้องตรวจสิทธิ์เอง ไม่พึ่ง layout** — การ์ด `requireAdmin()` ใน `src/app/(admin)/layout.js` คุมแค่การเรนเดอร์หน้า แต่ Server Action ถูกยิงตรงผ่าน HTTP ได้โดยไม่ผ่านหน้า ทุก action จึงเรียก `requireAdmin()` ซ้ำอีกชั้น
+
+**Session ตรวจกับฐานข้อมูลทุกครั้ง** — token มีอายุ 7 วัน ถ้าเชื่อข้อมูลใน token อย่างเดียว คนที่ถูกถอดสิทธิ์หรือระงับบัญชีจะยังใช้สิทธิ์เดิมได้จนกว่า token จะหมดอายุ
+
+**ข้อมูลภายในห้ามหลุดเข้าไปในคอนเทนต์ที่ AI เขียน** — เหตุผลที่ระบบเลือกอุปกรณ์มาโปรโมต (เช่น "คิวว่างต่อเนื่อง 9 วัน") ถูกส่งให้ Gemini เป็นบริบทเท่านั้น และมีคำสั่งห้ามนำไปเขียนในโพส เพราะการประกาศว่าของชิ้นนี้ไม่มีคนเช่ามาหลายวัน เท่ากับบอกลูกค้าว่าของไม่เป็นที่นิยม ตอนแก้ prompt ต้องระวังไม่ให้กฎข้อนี้หลุด
+
+**อย่าตรึงเลขเวอร์ชันโมเดล Gemini** — ใช้ alias `gemini-flash-latest` เพราะ Google ปิดโมเดลรุ่นเก่าไม่ให้ผู้ใช้ใหม่เรียกเป็นระยะ (`gemini-2.5-flash` ถูกปิดแล้วทั้งที่ยังโผล่ใน ListModels) ระบบลองใหม่อัตโนมัติเมื่อเจอ 503/timeout ซึ่งเกิดบ่อย
+
+**Deadlock ตอนอนุมัติพร้อมกันเป็นเรื่องปกติ ไม่ใช่บั๊ก** — เมื่อสองแอดมินกดอนุมัติคำขอที่ใช้อุปกรณ์ชิ้นเดียวกัน InnoDB จะยกเลิก transaction ฝั่งหนึ่ง ระบบจึงลองใหม่อัตโนมัติสูงสุด 3 ครั้ง รอบถัดมาจะเห็นผลของฝั่งที่สำเร็จแล้ว และตอบกลับด้วยเหตุผล "คิวชนกัน" แทน error ดิบจากฐานข้อมูล
+
+**วันที่ในคอลัมน์ `@db.Date` ต้องสร้างเป็นเที่ยงคืน UTC เสมอ** — ถ้าสร้าง Date ด้วยเที่ยงคืนเวลาไทย (`setHours(0,0,0,0)`) ค่าที่บันทึกจะร่นไป 1 วัน เพราะ 00:00 ของไทยคือ 17:00 UTC ของวันก่อนหน้า ใช้ `utcDay()` จาก `src/lib/queue.js` ทุกครั้งที่ต้องเขียนวันเช่า/วันคืน
+
+**การรับคืนคือจุดที่ข้อมูลสำคัญหลายอย่างเกิดพร้อมกัน** — `returnItemsTx()` ใน `src/lib/returns.js` ทำ 5 อย่างในทรานแซกชันเดียว: คืนของเข้าสต็อกตามสภาพ, เดินตัวนับรอบเช่า/วันใช้งาน, ดึงออกจากคิวอัตโนมัติถ้าครบเกณฑ์, บันทึก InspectionLog และอัปเดตสถิติ+เกรดลูกค้า ถ้าแยกกันทำจะเกิดสภาพครึ่ง ๆ กลาง ๆ ได้ เช่น ของกลับเข้าสต็อกแล้วแต่ตัวนับไม่เดิน ทำให้ REQ-RISK-003 ไม่ทำงาน
+
+**เกรดลูกค้าคำนวณจากประวัติจริง ไม่ได้ตั้งมือ** — `computeGrade()` ให้น้ำหนักความเสียหายมากกว่าการคืนช้า เพราะของพังคือต้นทุนที่ร้านจ่ายจริง ส่วนคืนช้าคิดค่าเช่าเพิ่มได้อยู่แล้ว และลูกค้าที่เช่าไม่ถึง 3 ครั้งได้เกรด B เสมอ เพราะยังพิสูจน์ตัวเองไม่พอ
+
+**หน้าเช่าหน้าร้านตรวจ "ว่างหรือไม่" ด้วยสูตรเดียวกับ server** — `WalkInForm.jsx` เรียก `rangesOverlap()` จาก `src/lib/queue.js` ตัวเดียวกับที่ `findConflicts()` ใช้ตอนบันทึกจริง เพื่อให้สิ่งที่พนักงานเห็นตรงกับสิ่งที่ระบบยอมรับ ถ้าเขียนสูตรแยกกันสองที่ พนักงานจะเลือกของที่กดบันทึกไม่ผ่าน การตรวจฝั่งเบราว์เซอร์เป็นแค่ความสะดวก **ตัวที่กันจองซ้อนจริงยังเป็นการตรวจใน transaction ฝั่ง server เสมอ**
+
+**ลูกค้าหน้าร้านผูกด้วยเบอร์โทร** — ถ้าสร้างโปรไฟล์ใหม่ทุกครั้งที่ลูกค้าเดินเข้ามา ประวัติการเช่าจะกระจัดกระจายและเกรดความเสี่ยง (REQ-RISK-001) จะไม่มีความหมาย
+
+**เงินมัดจำคือค่าคงที่ ไม่ใช่เปอร์เซ็นต์ของมูลค่าอุปกรณ์** — ร้านเก็บ *มัดจำจองคิว* 100 บาทต่อคำขอเท่ากันทุกเกรด เพื่อกันลูกค้าจองแล้วไม่มารับของ และเงินก้อนนี้ **หักจากค่าเช่า** ไม่ใช่บวกเพิ่ม (`ยอดคงเหลือ = ค่าเช่ารวม − มัดจำ`) เจ้าของร้านแก้ตัวเลขได้เองที่หน้า `/settings` ซึ่งเก็บใน `ShopSetting` แถวเดียว ส่วน `replacementValue` ของอุปกรณ์ใช้ประเมินค่าเสียหายตอนรับคืน **ไม่เกี่ยวกับมัดจำ** และเกรดลูกค้า A/B/C มีผลกับลำดับการอนุมัติคิวเท่านั้น
+
+**ราคาถูก snapshot ไว้ในออเดอร์** — `dailyRate`, `depositRate` และ `gradeAtRequest` ถูกบันทึกไว้ที่ตัวออเดอร์ ณ เวลาที่ยื่นคำขอ การขึ้นราคาหรือปรับเกรดลูกค้าภายหลังจึงไม่ย้อนไปเปลี่ยนยอดของออเดอร์เก่า
+
+---
+
+## สถานะการพัฒนา
+
+- [x] โครงสร้างฐานข้อมูลครบตาม SRS
+- [x] Admin shell + navigation
+- [x] หน้า Dashboard (ดึงข้อมูลจริงจากฐานข้อมูล)
+- [x] หน้าตารางคิวอุปกรณ์ (ปฏิทิน 7 วัน เลื่อนสัปดาห์ได้)
+- [x] หน้าจัดการสต็อก (เพิ่มอุปกรณ์ / เปลี่ยนสถานะ / ปลดระวาง พร้อมตัวกรอง)
+- [x] หน้าอนุมัติคำขอเช่า (อนุมัติ/ปฏิเสธได้จริง พร้อมกันจองซ้อนใน transaction)
+- [x] หน้า AI Marketing (ต่อ Gemini API จริง — ตรวจจับ, ร่าง, แก้ไข, เผยแพร่)
+- [x] ระบบล็อกอินและสิทธิ์ผู้ใช้ (bcrypt + JWT session, แยกสิทธิ์แอดมิน/สมาชิก)
+- [x] เช่าหน้าร้าน + จัดเซ็ตอุปกรณ์ + ส่วนลด (REQ-RENT-003 / REQ-RENT-006)
+- [x] รับคืนอุปกรณ์ + ตรวจสภาพ + ตัวนับบำรุงรักษาอัตโนมัติ + จัดเกรดลูกค้า (REQ-RENT-005 / REQ-RISK-001 / REQ-RISK-003)
+- [x] แก้ไขข้อมูลรุ่นอุปกรณ์และค่าเช่า
+- [ ] อัปโหลดรูปตรวจสภาพ 4 มุม (REQ-RISK-002 — โครงข้อมูลพร้อมแล้ว เหลือระบบไฟล์)
+- [ ] หน้าจัดการสมาชิก (แก้ข้อมูล / ปรับเกรดเอง / ระงับสิทธิ์)
+- [ ] สมาชิกจัดชุดอุปกรณ์และส่งคำขอเช่าเองผ่านเว็บ
+- [ ] AI Smart Recommendation Wizard (REQ-AI-001)
