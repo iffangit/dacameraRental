@@ -47,5 +47,6 @@ next-env.d.ts
 /.next-build/
 
 # รูปที่อัปโหลด — เก็บไฟล์จริงไว้ในเครื่อง ไม่ commit ขึ้น repo
-/public/uploads/*
-!/public/uploads/.gitkeep
+# อยู่นอก public/ เพราะ next start อ่านรายชื่อไฟล์ใน public/ แค่ตอนบูต
+/data/uploads/*
+!/data/uploads/.gitkeep

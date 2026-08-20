@@ -91,7 +91,7 @@ cd "/Users/macbookairiffan/Dacamera system"
   dacamera_rental > ~/Desktop/dacamera_rental.sql
 
 # รูปที่อัปโหลด (ไม่ได้อยู่บน GitHub — ต้องก๊อปมือ)
-tar -czf ~/Desktop/dacamera_uploads.tgz -C public uploads
+tar -czf ~/Desktop/dacamera_uploads.tgz -C data uploads
 ```
 
 ก๊อปสองไฟล์นี้ไป iMac (AirDrop / thumb drive / iCloud)
@@ -117,13 +117,11 @@ docker compose exec -T db \
   < ~/Desktop/dacamera_rental.sql
 
 # 2. รูปอัปโหลด
-tar -xzf ~/Desktop/dacamera_uploads.tgz -C public
-docker compose cp ./public/uploads/. app:/app/public/uploads/
-docker compose exec -u root app chown -R node:node /app/public/uploads
+tar -xzf ~/Desktop/dacamera_uploads.tgz -C data
+docker compose cp ./data/uploads/. app:/app/data/uploads/
+docker compose exec -u root app chown -R node:node /app/data/uploads
 
-# 3. รีสตาร์ทแอป — จำเป็น ไม่ใช่แค่ให้สบายใจ
-#    next start อ่านรายชื่อไฟล์ใน public/ ตอนบูตครั้งเดียว
-#    ไฟล์ที่ก๊อปเข้าไปตอนเซิร์ฟเวอร์รันอยู่จะขึ้น 404 จนกว่าจะรีสตาร์ท
+# 3. รีสตาร์ทแอป
 docker compose restart app
 ```
 
@@ -213,12 +211,15 @@ MySQL ตั้งรหัสผ่านแค่ตอนสร้าง volu
 **พอร์ต 3000 ถูกใช้อยู่**
 แก้ `ports` ของ service `app` ใน `docker-compose.yml` เป็น `"3001:3000"`
 
-**อัปโหลดรูปใหม่ในเว็บแล้วรูปไม่ขึ้น (404)**
-`next start` อ่านรายชื่อไฟล์ใน `public/` ตอนบูตครั้งเดียว รูปที่เพิ่งอัปโหลดจึงยังไม่ถูกเสิร์ฟ
-ชั่วคราวแก้ด้วย `docker compose restart app` — เป็นข้อจำกัดของตัวแอปเอง ไม่ใช่ของ Docker
-(เจอเหมือนกันถ้า deploy ด้วย PM2 บน VPS) ทางแก้ถาวรคือย้าย uploads ออกจาก `public/`
-แล้วเสิร์ฟผ่าน route handler แทน
-
 **รูปหายหลัง rebuild**
-ไม่ควรเกิด เพราะรูปอยู่ใน volume `dacamera_uploads` ไม่ได้อยู่ใน image
-ถ้าหายจริงแปลว่าเผลอรัน `docker compose down -v`
+ไม่ควรเกิด เพราะรูปอยู่ใน volume `dacamera_uploads` (ผูกกับ `/app/data/uploads`)
+ไม่ได้อยู่ใน image — ถ้าหายจริงแปลว่าเผลอรัน `docker compose down -v`
+
+**รูปที่อัปโหลดขึ้น 404**
+รูปเก็บที่ `data/uploads/` ไม่ใช่ `public/uploads/` แล้วเสิร์ฟผ่าน route handler
+ที่ `src/app/uploads/[...segments]/route.js` (ถ้าเก็บใน `public/` จะโดน `next start`
+แคชรายชื่อไฟล์ตอนบูต แล้วรูปใหม่ขึ้น 404 จนกว่าจะรีสตาร์ท)
+ถ้าเจอ 404 ให้เช็คว่าไฟล์อยู่ในคอนเทนเนอร์จริงและเจ้าของเป็น `node`:
+```bash
+docker compose exec app ls -la /app/data/uploads/equipment
+```

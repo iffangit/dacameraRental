@@ -16,8 +16,8 @@ node_modules
 !.env.docker.example
 
 # รูปที่อัปโหลด — ผูกเป็น volume ไม่ต้องอบเข้า image
-public/uploads/*
-!public/uploads/.gitkeep
+data/uploads/*
+!data/uploads/.gitkeep
 
 # เอกสาร / ของเล่นที่ไม่เกี่ยวกับ runtime
 *.md

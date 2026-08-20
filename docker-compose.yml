@@ -51,7 +51,7 @@ services:
       - "3000:3000"
     volumes:
       # รูปที่อัปโหลดต้องอยู่นอก image ไม่งั้นหายทุกครั้งที่ build ใหม่
-      - uploads:/app/public/uploads
+      - uploads:/app/data/uploads
 
 volumes:
   db-data:

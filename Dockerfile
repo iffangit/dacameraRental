@@ -60,8 +60,8 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# public/uploads ถูก mount ทับด้วย volume — ต้องให้ user ที่รันแอปเขียนได้
-RUN mkdir -p public/uploads && chown -R node:node public/uploads
+# data/uploads ถูก mount ทับด้วย volume — ต้องให้ user ที่รันแอปเขียนได้
+RUN mkdir -p data/uploads && chown -R node:node data/uploads
 USER node
 
 EXPOSE 3000

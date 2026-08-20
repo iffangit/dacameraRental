@@ -5,14 +5,24 @@ import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 /**
- * จัดการไฟล์รูปที่อัปโหลด — เก็บลงดิสก์ในเครื่องใต้ public/uploads/
+ * จัดการไฟล์รูปที่อัปโหลด — เก็บลงดิสก์ในเครื่องใต้ data/uploads/
  *
  * เลือกเก็บในเครื่องเพราะโปรเจกต์นี้ deploy บน VPS ตัวเดียว ไม่มีค่าใช้จ่าย
  * และไม่ต้องพึ่งบริการภายนอก — แลกกับว่าถ้าย้ายเครื่องต้องก๊อปโฟลเดอร์นี้ไปด้วย
  * และต้องกันไม่ให้ถูกลบตอน deploy ใหม่
+ *
+ * ทำไมถึงไม่เก็บใน public/uploads ทั้งที่ Next เสิร์ฟ public/ ให้ฟรี:
+ * `next start` อ่านรายชื่อไฟล์ใน public/ แค่ตอนบูตครั้งเดียว รูปที่ผู้ใช้
+ * เพิ่งอัปโหลดจึงขึ้น 404 จนกว่าจะรีสตาร์ทเซิร์ฟเวอร์ (ตอน next dev ไม่เจอ
+ * เพราะ dev server สแกนใหม่ตลอด — บั๊กจะไปโผล่ตอน production เท่านั้น)
+ * จึงย้ายออกมานอก public/ แล้วเสิร์ฟผ่าน route handler ที่ src/app/uploads/
+ * ซึ่งอ่านดิสก์ตอนมี request จริง
+ *
+ * path ที่เก็บใน DB ยังเป็น /uploads/... เหมือนเดิม ไม่ต้องแก้ข้อมูลเก่า
  */
 
-const UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads");
+export const UPLOAD_ROOT =
+  process.env.UPLOAD_DIR || path.join(process.cwd(), "data", "uploads");
 
 /** ชนิดไฟล์ที่ยอมรับ — ตรวจจาก magic bytes ไม่ใช่แค่ที่เบราว์เซอร์แจ้งมา */
 const SIGNATURES = [
