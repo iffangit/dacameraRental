@@ -50,6 +50,8 @@ ENV HOSTNAME=0.0.0.0
 # จึงยกทั้ง node_modules มาเลย — image ใหญ่ขึ้นแต่ไม่มีเซอร์ไพรส์ตอน runtime
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next-build ./.next-build
+# public/ ตอนนี้แทบว่าง (รูปอัปโหลดย้ายไป data/ แล้ว) แต่ยังต้องมีโฟลเดอร์อยู่
+# เพราะ COPY จะล้มถ้า path ไม่มีจริง — repo จึงคง public/.gitkeep ไว้
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./package.json
